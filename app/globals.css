@@ -1,26 +1,326 @@
 @import "tailwindcss";
 
+/* ─── Theme Variables ──────────────────────────────────────────────────────── */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Core backgrounds */
+  --bg-base:       #0D0D0D;
+  --bg-surface:    #1A1A1A;
+  --bg-raised:     #242424;
+  --bg-hover:      #2E2E2E;
+
+  /* Accent — electric green */
+  --accent:        #00FF87;
+  --accent-dim:    #00CC6A;
+  --accent-muted:  rgba(0, 255, 135, 0.12);
+
+  /* Text */
+  --text-primary:  #F0F0F0;
+  --text-secondary:#A0A0A0;
+  --text-muted:    #555555;
+
+  /* Borders */
+  --border:        #2A2A2A;
+  --border-accent: rgba(0, 255, 135, 0.35);
+
+  /* Status colors */
+  --green:  #00FF87;
+  --yellow: #FFD600;
+  --red:    #FF4444;
+  --blue:   #4499FF;
+
+  /* Position badge colors */
+  --pos-qb:  #FF6B6B;
+  --pos-rb:  #4ECDC4;
+  --pos-wr:  #45B7D1;
+  --pos-te:  #F7B731;
+  --pos-k:   #A29BFE;
+  --pos-def: #6C757D;
+  --pos-flex:#00FF87;
+
+  /* Fonts */
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), "Courier New", monospace;
 }
+
+/* ─── Tailwind theme tokens ────────────────────────────────────────────────── */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg-base);
+  --color-foreground: var(--text-primary);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── Base reset ───────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Scrollbar styling ────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ─── Typography ───────────────────────────────────────────────────────────── */
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.stat-number {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.accent-text {
+  color: var(--accent);
+}
+
+/* ─── Component base styles ────────────────────────────────────────────────── */
+
+/* Surface card */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.card-raised {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+/* Accent border highlight */
+.card-accent {
+  border-color: var(--border-accent);
+  box-shadow: 0 0 0 1px var(--border-accent), inset 0 0 20px var(--accent-muted);
+}
+
+/* Sidebar nav item */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+  border: 1px solid transparent;
+}
+
+.nav-item:hover {
+  background: var(--bg-raised);
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  background: var(--accent-muted);
+  color: var(--accent);
+  border-color: var(--border-accent);
+}
+
+/* Position badge */
+.pos-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  min-width: 32px;
+}
+
+.pos-QB  { background: rgba(255, 107, 107, 0.2); color: var(--pos-qb);  }
+.pos-RB  { background: rgba(78, 205, 196, 0.2);  color: var(--pos-rb);  }
+.pos-WR  { background: rgba(69, 183, 209, 0.2);  color: var(--pos-wr);  }
+.pos-TE  { background: rgba(247, 183, 49, 0.2);  color: var(--pos-te);  }
+.pos-K   { background: rgba(162, 155, 254, 0.2); color: var(--pos-k);   }
+.pos-DEF { background: rgba(108, 117, 125, 0.2); color: var(--pos-def); }
+.pos-FLEX       { background: rgba(0, 255, 135, 0.15); color: var(--pos-flex); }
+.pos-SUPER_FLEX { background: rgba(0, 255, 135, 0.15); color: var(--pos-flex); }
+
+/* Injury status dot */
+.injury-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.injury-dot.healthy      { background: var(--green); }
+.injury-dot.questionable { background: var(--yellow); }
+.injury-dot.out          { background: var(--red); }
+.injury-dot.ir           { background: var(--red); opacity: 0.6; }
+
+/* Verdict badge */
+.verdict-WIN  { background: rgba(0, 255, 135, 0.15); color: var(--green); border: 1px solid rgba(0, 255, 135, 0.4); }
+.verdict-LOSS { background: rgba(255, 68, 68, 0.15);  color: var(--red);   border: 1px solid rgba(255, 68, 68, 0.4); }
+.verdict-FAIR { background: rgba(255, 214, 0, 0.15);  color: var(--yellow); border: 1px solid rgba(255, 214, 0, 0.4); }
+
+/* Primary button */
+.btn-primary {
+  background: var(--accent);
+  color: #000;
+  font-weight: 700;
+  font-size: 0.875rem;
+  padding: 10px 20px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: background 150ms ease, transform 100ms ease;
+  letter-spacing: 0.02em;
+}
+
+.btn-primary:hover  { background: var(--accent-dim); }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled {
+  background: var(--bg-raised);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* Secondary button */
+.btn-secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 9px 18px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-raised);
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+/* Input / select */
+.input {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  padding: 10px 14px;
+  outline: none;
+  width: 100%;
+  transition: border-color 150ms ease;
+}
+
+.input:focus {
+  border-color: var(--accent);
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ─── Skeleton loader ──────────────────────────────────────────────────────── */
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-surface) 25%,
+    var(--bg-raised)  50%,
+    var(--bg-surface) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 4px;
+}
+
+/* ─── Fade-in animation ────────────────────────────────────────────────────── */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 220ms ease forwards;
+}
+
+/* ─── Progress bar ─────────────────────────────────────────────────────────── */
+
+.progress-bar-track {
+  background: var(--bg-raised);
+  border-radius: 999px;
+  overflow: hidden;
+  height: 4px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 300ms ease;
+}
+
+/* ─── Divider ──────────────────────────────────────────────────────────────── */
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0;
+}
+
+/* ─── Utility: monospaced stat ─────────────────────────────────────────────── */
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
