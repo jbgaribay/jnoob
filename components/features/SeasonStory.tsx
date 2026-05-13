@@ -1,8 +1,8 @@
-// components/features/SeasonStory.tsx
 "use client";
-import type { LeagueData } from "@/lib/types";
-export default function SeasonStory({ data }: { data: LeagueData }) {
-  void data;
+import type { LeagueData } from "@/lib/sleeper";
+import type { UserSettings } from "@/lib/config";
+export default function SeasonStory({ data, settings }: { data: LeagueData; settings: UserSettings }) {
+  void data; void settings;
   return (
     <div className="flex items-center justify-center h-64">
       <div className="text-center">

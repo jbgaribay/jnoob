@@ -16,6 +16,21 @@ import type {
 
 const BASE = CONFIG.sleeperBaseUrl;
 
+// ─── FantasyCalc ──────────────────────────────────────────────────────────────
+
+export interface FantasyCalcPlayer {
+  player: {
+    name: string;
+    position: string;
+    maybeSleeperId: string | null;
+  };
+  value: number;        // dynasty trade value (0–10000 scale)
+  overallRank: number;
+  positionRank: number;
+}
+
+export type FantasyCalcDB = Record<string, FantasyCalcPlayer>; // keyed by sleeper_id
+
 // ─── Generic fetch helper ─────────────────────────────────────────────────────
 
 async function sleeperFetch<T>(path: string): Promise<T> {
@@ -285,8 +300,26 @@ export interface LeagueData {
   myRoster: SleeperRoster;
   myUser: SleeperLeagueUser;
   currentWeek: number;
+  fantasyCalcValues: FantasyCalcDB;
 }
+/**
+ * Fetch dynasty trade values from FantasyCalc.
+ * Returns a map of sleeper_id → FantasyCalcPlayer for fast lookup.
+ */
+export async function fetchFantasyCalcValues(): Promise<FantasyCalcDB> {
+  const res = await fetch(CONFIG.fantasyCalcUrl);
+  if (!res.ok) throw new Error(`FantasyCalc API error ${res.status}`);
+  const raw: FantasyCalcPlayer[] = await res.json();
 
+  const db: FantasyCalcDB = {};
+  for (const entry of raw) {
+    const sleeperId = entry.player.maybeSleeperId;
+    if (sleeperId) {
+      db[sleeperId] = entry;
+    }
+  }
+  return db;
+}
 /**
  * Master data loader — fetches everything needed to power all 6 features.
  * Calls onProgress at each stage so the UI can show a progress bar.
@@ -344,8 +377,12 @@ export async function loadLeagueData(
   const allTransactions = await fetchAllTransactions(leagueId, currentWeek);
 
   // 8. Trending adds
-  onProgress({ stage: "trending", pct: 92 });
-  const trendingAdds = await fetchTrendingAdds();
+// 8. Trending adds + FantasyCalc values (parallel)
+onProgress({ stage: "trending", pct: 92 });
+const [trendingAdds, fantasyCalcValues] = await Promise.all([
+  fetchTrendingAdds(),
+  fetchFantasyCalcValues(),
+]);
 
   onProgress({ stage: "done", pct: 100 });
 
@@ -361,5 +398,6 @@ export async function loadLeagueData(
     myRoster,
     myUser,
     currentWeek,
+    fantasyCalcValues,
   };
 }

@@ -1,8 +1,6 @@
 "use client";
 
 // app/page.tsx
-// Root component — owns all app state and renders the dashboard shell.
-// Boots straight into data loading (no login screen — personal tool).
 
 import { useEffect, useState, useCallback } from "react";
 import {
@@ -14,31 +12,33 @@ import {
   BookOpen,
   AlertCircle,
   RefreshCw,
+  Settings as SettingsIcon,
 } from "lucide-react";
 
-import { CONFIG } from "@/lib/config";
+import { CONFIG, DEFAULT_SETTINGS, type UserSettings } from "@/lib/config";
 import { fetchUser, loadLeagueData, type LeagueData, type LoadProgress } from "@/lib/sleeper";
 import { calcSeasonPoints } from "@/lib/sleeper";
 
-// Feature components (stubbed until built — imported below)
-import TeamHealth   from "@/components/features/TeamHealth";
+import TeamHealth    from "@/components/features/TeamHealth";
 import TradeAnalyzer from "@/components/features/TradeAnalyzer";
-import WaiverWire   from "@/components/features/WaiverWire";
-import LeagueSpy    from "@/components/features/LeagueSpy";
-import StartSit     from "@/components/features/StartSit";
-import SeasonStory  from "@/components/features/SeasonStory";
+import WaiverWire    from "@/components/features/WaiverWire";
+import LeagueSpy     from "@/components/features/LeagueSpy";
+import StartSit      from "@/components/features/StartSit";
+import SeasonStory   from "@/components/features/SeasonStory";
+import Settings, { loadSettings } from "@/components/features/Settings";
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
 
-type TabId = "health" | "trade" | "waiver" | "spy" | "startsit" | "story";
+type TabId = "health" | "trade" | "waiver" | "spy" | "startsit" | "story" | "settings";
 
-const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel: string }[] = [
-  { id: "health",   label: "Team Health",       shortLabel: "Health",   icon: <Activity size={18} /> },
-  { id: "trade",    label: "Trade Analyzer",    shortLabel: "Trades",   icon: <ArrowLeftRight size={18} /> },
-  { id: "waiver",   label: "Waiver Wire",       shortLabel: "Waivers",  icon: <TrendingUp size={18} /> },
-  { id: "spy",      label: "League Spy",        shortLabel: "Spy",      icon: <Eye size={18} /> },
-  { id: "startsit", label: "Start / Sit",       shortLabel: "Lineup",   icon: <CalendarDays size={18} /> },
-  { id: "story",    label: "Season Story",      shortLabel: "Story",    icon: <BookOpen size={18} /> },
+const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+  { id: "health",   label: "Team Health",    icon: <Activity size={18} /> },
+  { id: "trade",    label: "Trade Analyzer", icon: <ArrowLeftRight size={18} /> },
+  { id: "waiver",   label: "Waiver Wire",    icon: <TrendingUp size={18} /> },
+  { id: "spy",      label: "League Spy",     icon: <Eye size={18} /> },
+  { id: "startsit", label: "Start / Sit",    icon: <CalendarDays size={18} /> },
+  { id: "story",    label: "Season Story",   icon: <BookOpen size={18} /> },
+  { id: "settings", label: "Settings",       icon: <SettingsIcon size={18} /> },
 ];
 
 // ─── Loading stage labels ─────────────────────────────────────────────────────
@@ -51,18 +51,24 @@ const STAGE_LABELS: Record<string, string> = {
   rosters:      "Loading all rosters...",
   matchups:     "Fetching season matchups...",
   transactions: "Loading transaction history...",
-  trending:     "Fetching waiver trends...",
+  trending:     "Fetching waiver trends & dynasty values...",
   done:         "Ready.",
 };
 
 // ─── Root component ───────────────────────────────────────────────────────────
 
 export default function Home() {
-  const [leagueData, setLeagueData]     = useState<LeagueData | null>(null);
-  const [activeTab, setActiveTab]       = useState<TabId>("health");
-  const [progress, setProgress]         = useState<LoadProgress | null>(null);
-  const [error, setError]               = useState<string | null>(null);
-  const [isLoading, setIsLoading]       = useState(true);
+  const [leagueData, setLeagueData] = useState<LeagueData | null>(null);
+  const [activeTab, setActiveTab]   = useState<TabId>("health");
+  const [progress, setProgress]     = useState<LoadProgress | null>(null);
+  const [error, setError]           = useState<string | null>(null);
+  const [isLoading, setIsLoading]   = useState(true);
+  const [settings, setSettings]     = useState<UserSettings>(DEFAULT_SETTINGS);
+
+  // Load saved settings from localStorage on boot
+  useEffect(() => {
+    setSettings(loadSettings());
+  }, []);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -70,16 +76,12 @@ export default function Home() {
     setLeagueData(null);
 
     try {
-      // Resolve username → user_id
       const user = await fetchUser(CONFIG.username);
-
-      // Load all league data, driving progress bar via callback
       const data = await loadLeagueData(
         CONFIG.leagueId,
         user.user_id,
         (p) => setProgress(p),
       );
-
       setLeagueData(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong loading your league data.");
@@ -92,25 +94,24 @@ export default function Home() {
     load();
   }, [load]);
 
-  // ── Loading screen ─────────────────────────────────────────────────────────
   if (isLoading || (!leagueData && !error)) {
     return <LoadingScreen progress={progress} />;
   }
 
-  // ── Error screen ───────────────────────────────────────────────────────────
   if (error) {
     return <ErrorScreen message={error} onRetry={load} />;
   }
 
   if (!leagueData) return null;
 
-  // ── Dashboard ──────────────────────────────────────────────────────────────
   return (
     <Dashboard
       data={leagueData}
       activeTab={activeTab}
       onTabChange={setActiveTab}
       onRefresh={load}
+      settings={settings}
+      onSettingsSave={setSettings}
     />
   );
 }
@@ -123,7 +124,6 @@ function LoadingScreen({ progress }: { progress: LoadProgress | null }) {
 
   return (
     <div className="h-full flex flex-col items-center justify-center gap-8" style={{ background: "var(--bg-base)" }}>
-      {/* Logo / wordmark */}
       <div className="flex flex-col items-center gap-2">
         <span className="text-4xl font-black tracking-tight" style={{ color: "var(--accent)", fontFamily: "var(--font-mono)" }}>
           JNOOB
@@ -132,8 +132,6 @@ function LoadingScreen({ progress }: { progress: LoadProgress | null }) {
           Fantasy Intelligence Dashboard
         </span>
       </div>
-
-      {/* Progress bar */}
       <div className="w-72 flex flex-col gap-3">
         <div className="progress-bar-track">
           <div className="progress-bar-fill" style={{ width: `${pct}%` }} />
@@ -158,8 +156,7 @@ function ErrorScreen({ message, onRetry }: { message: string; onRetry: () => voi
         <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{message}</p>
       </div>
       <button className="btn-primary flex items-center gap-2" onClick={onRetry}>
-        <RefreshCw size={15} />
-        Try Again
+        <RefreshCw size={15} /> Try Again
       </button>
     </div>
   );
@@ -172,38 +169,34 @@ function Dashboard({
   activeTab,
   onTabChange,
   onRefresh,
+  settings,
+  onSettingsSave,
 }: {
   data: LeagueData;
   activeTab: TabId;
   onTabChange: (t: TabId) => void;
   onRefresh: () => void;
+  settings: UserSettings;
+  onSettingsSave: (s: UserSettings) => void;
 }) {
   const { myRoster, myUser, allMatchups } = data;
-
-  // Derive record from roster settings
   const { wins, losses, ties } = myRoster.settings;
-
-  // Total season points for my team
   const totalPts = calcSeasonPoints(myRoster.roster_id, allMatchups);
-
-  // Team name: custom name in metadata, else display_name
   const teamName = myUser.metadata?.team_name ?? myUser.display_name;
 
   return (
     <div className="h-full flex overflow-hidden">
-      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
+      {/* ── Sidebar ───────────────────────────────────────────────────────── */}
       <aside
         className="flex flex-col flex-shrink-0 w-56 h-full border-r overflow-y-auto"
         style={{ background: "var(--bg-surface)", borderColor: "var(--border)" }}
       >
-        {/* Header — team name + record */}
+        {/* Team header */}
         <div className="px-4 py-5 border-b" style={{ borderColor: "var(--border)" }}>
           <div className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "var(--text-muted)" }}>
             Your Team
           </div>
-          <div className="font-bold text-sm leading-tight truncate" style={{ color: "var(--text-primary)" }}>
-            {teamName}
-          </div>
+          <div className="font-bold text-sm leading-tight truncate">{teamName}</div>
           <div className="flex items-baseline gap-2 mt-1">
             <span className="text-lg font-black mono" style={{ color: "var(--accent)" }}>
               {wins}–{losses}{ties > 0 ? `–${ties}` : ""}
@@ -212,9 +205,25 @@ function Dashboard({
               {totalPts.toFixed(1)} pts
             </span>
           </div>
+          {/* Posture badge */}
+          <div className="mt-2">
+            <span
+              className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize"
+              style={{
+                background: settings.posture === "contending" ? "rgba(0,255,135,0.12)" :
+                             settings.posture === "rebuilding" ? "rgba(68,153,255,0.12)" :
+                             "rgba(255,214,0,0.12)",
+                color: settings.posture === "contending" ? "var(--green)" :
+                        settings.posture === "rebuilding" ? "var(--blue)" :
+                        "var(--yellow)",
+              }}
+            >
+              {settings.posture}
+            </span>
+          </div>
         </div>
 
-        {/* Nav items */}
+        {/* Nav */}
         <nav className="flex flex-col gap-1 p-3 flex-1">
           {TABS.map((tab) => (
             <button
@@ -228,7 +237,7 @@ function Dashboard({
           ))}
         </nav>
 
-        {/* Footer — refresh + season info */}
+        {/* Footer */}
         <div className="px-4 py-4 border-t" style={{ borderColor: "var(--border)" }}>
           <div className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
             Season {data.nflState.season} · Week {data.currentWeek}
@@ -237,15 +246,13 @@ function Dashboard({
             className="btn-secondary w-full flex items-center justify-center gap-2 text-xs"
             onClick={onRefresh}
           >
-            <RefreshCw size={12} />
-            Refresh Data
+            <RefreshCw size={12} /> Refresh Data
           </button>
         </div>
       </aside>
 
-      {/* ── Main content ─────────────────────────────────────────────────── */}
+      {/* ── Main content ──────────────────────────────────────────────────── */}
       <main className="flex-1 overflow-y-auto" style={{ background: "var(--bg-base)" }}>
-        {/* Tab header */}
         <div
           className="sticky top-0 z-10 px-8 py-4 border-b flex items-center justify-between"
           style={{ background: "var(--bg-base)", borderColor: "var(--border)" }}
@@ -255,19 +262,21 @@ function Dashboard({
               {TABS.find((t) => t.id === activeTab)?.label}
             </h1>
             <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-              {CONFIG.leagueId} · PPR · SuperFlex
+              PPR · SuperFlex · {settings.posture}
             </p>
           </div>
         </div>
 
-        {/* Feature panel — fade-in on tab switch */}
         <div key={activeTab} className="fade-in p-8">
-          {activeTab === "health"   && <TeamHealth   data={data} />}
-          {activeTab === "trade"    && <TradeAnalyzer data={data} />}
-          {activeTab === "waiver"   && <WaiverWire   data={data} />}
-          {activeTab === "spy"      && <LeagueSpy    data={data} />}
-          {activeTab === "startsit" && <StartSit     data={data} />}
-          {activeTab === "story"    && <SeasonStory  data={data} />}
+          {activeTab === "health"   && <TeamHealth    data={data} settings={settings} />}
+          {activeTab === "trade"    && <TradeAnalyzer data={data} settings={settings} />}
+          {activeTab === "waiver"   && <WaiverWire    data={data} settings={settings} />}
+          {activeTab === "spy"      && <LeagueSpy     data={data} settings={settings} />}
+          {activeTab === "startsit" && <StartSit      data={data} settings={settings} />}
+          {activeTab === "story"    && <SeasonStory   data={data} settings={settings} />}
+          {activeTab === "settings" && (
+            <Settings data={data} settings={settings} onSave={onSettingsSave} />
+          )}
         </div>
       </main>
     </div>
